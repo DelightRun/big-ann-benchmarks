@@ -35,16 +35,14 @@ class Diskann(BaseANN):
         return f"R{self.R}_L{self.L}_B{self.B}_M{self.M}"
 
     def create_index_dir(self, dataset):
-        index_dir = os.path.join(os.getcwd(), "data", "indices")
-        os.makedirs(index_dir, mode=0o777, exist_ok=True)
-        index_dir = os.path.join(index_dir, "T2")
-        os.makedirs(index_dir, mode=0o777, exist_ok=True)
-        index_dir = os.path.join(index_dir, self.__str__())
-        os.makedirs(index_dir, mode=0o777, exist_ok=True)
-        index_dir = os.path.join(index_dir, dataset.short_name())
-        os.makedirs(index_dir, mode=0o777, exist_ok=True)
-        index_dir = os.path.join(index_dir, self.index_name())
-        os.makedirs(index_dir, mode=0o777, exist_ok=True)
+        index_dir = os.path.join(
+            os.getcwd(),
+            "indices",
+            "T2",
+            self.__str__(),
+            dataset,
+            self.index_name()
+        )
         return index_dir
 
     def fit(self, dataset):
@@ -67,7 +65,7 @@ class Diskann(BaseANN):
                 1/0
         )
 
-        index_dir = self.create_index_dir(ds)
+        index_dir = self.create_index_dir(dataset)
         self.index_path = os.path.join(index_dir, self.index_name())
 
         if not hasattr(self, 'index'):
@@ -97,7 +95,7 @@ class Diskann(BaseANN):
             print ("Unsupported data type.")
             return False
 
-        index_dir = self.create_index_dir(ds)        
+        index_dir = self.create_index_dir(dataset)
         if not (os.path.exists(index_dir)) and 'url' not in self._index_params:
             return False
 
@@ -106,9 +104,10 @@ class Diskann(BaseANN):
             'pq_pivots.bin', 'pq_pivots.bin_centroid.bin', 'pq_pivots.bin_chunk_offsets.bin',
             'pq_pivots.bin_rearrangement_perm.bin',  'sample_data.bin', 'sample_ids.bin',
             'disk.index_centroids.bin', 'pq_compressed.bin', 'disk.index'
-            ]
+        ]
         for component in index_components:
             index_file = index_path + '_' + component
+            print(f"Preparing {index_file}.")
             if not (os.path.exists(index_file)):
                 if 'url' in self._index_params:
                     index_file_source = self._index_params['url'] + '/' + self.index_name() + '_' + component
@@ -116,6 +115,8 @@ class Diskann(BaseANN):
                     download_accelerated(index_file_source, index_file, quiet=True)
                 else:
                     return False
+            else:
+                print(f"File already exists, skip it.")
 
         print("Loading index")
 

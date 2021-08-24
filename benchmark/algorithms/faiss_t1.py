@@ -84,8 +84,15 @@ class Faiss(BaseANN):
         if 'query_bs' in index_params:
             self._query_bs = index_params['query_bs']
 
-    def index_name(self, name):
-        return f"data/{name}.{self.indexkey}.faissindex"
+    def index_name(self, dataset):
+        return os.path.join(
+            os.getcwd(),
+            "indices",
+            "T1",
+            "FaissIVFPQ",
+            dataset,
+            f"{self.indexkey}.faissindex"
+        )
 
     def fit(self, dataset):
         index_params = self._index_params
@@ -261,16 +268,19 @@ class Faiss(BaseANN):
         self.ps.initialize(self.index)
 
     def load_index(self, dataset):
-        if not os.path.exists(self.index_name(dataset)):
+        indexfile = self.index_name(dataset)
+
+        if not os.path.exists(indexfile):
             if 'url' not in self._index_params:
                 return False
 
             print('Downloading index in background. This can take a while.')
-            download_accelerated(self._index_params['url'], self.index_name(dataset), quiet=True)
+            os.path.makedirs(os.path.dirname(indexfile))
+            download_accelerated(self._index_params['url'], indexfile, quiet=True)
 
         print("Loading index")
 
-        self.index = faiss.read_index(self.index_name(dataset))
+        self.index = faiss.read_index(indexfile)
 
         self.ps = faiss.ParameterSpace()
         self.ps.initialize(self.index)
@@ -289,8 +299,6 @@ class Faiss(BaseANN):
 
     def __str__(self):
         return f'FaissIVFPQ({self.qas})'
-
-
 
     def query(self, X, n):
         if self._query_bs == -1:
